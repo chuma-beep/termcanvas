@@ -71,6 +71,32 @@ pnpm install
 pnpm dev
 ```
 
+**Arch Linux:**
+
+TermCanvas is available on Arch Linux through every major distribution method.
+
+**AUR** (recommended):
+```bash
+paru -S termcanvas-bin        # binary package (fast)
+# or
+paru -S termcanvas             # build from source
+
+# also works with yay, pamac, or any AUR helper:
+yay -S termcanvas-bin
+```
+
+**Flatpak:**
+```bash
+flatpak install flathub io.github.blueberrycongee.termcanvas
+```
+
+**Native pacman package** — download the `.pkg.tar.zst` from [GitHub Releases](https://github.com/blueberrycongee/termcanvas/releases):
+```bash
+sudo pacman -U termcanvas-*.pkg.tar.zst
+```
+
+**AppImage** or **deb** — also available from [GitHub Releases](https://github.com/blueberrycongee/termcanvas/releases).
+
 **Install CLI tools** — after launching the app, go to Settings → General → Command line interface and click Register. This adds `termcanvas` and `hydra` to your PATH.
 
 Registration also installs TermCanvas skills and lifecycle hooks for Claude/Codex. For Codex 0.129.0 and newer, TermCanvas writes the required hook trust state in `~/.codex/config.toml` so the generated hooks are reviewed/trusted and continue to emit terminal lifecycle and telemetry events.

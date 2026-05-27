@@ -99,6 +99,7 @@ jobs:
             out/*.blockmap
             out/*.AppImage
             out/*.deb
+            out/*.pkg.tar.zst
             out/*.exe
             out/*.msi
             out/*.yml

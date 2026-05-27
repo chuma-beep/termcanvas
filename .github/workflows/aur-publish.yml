@@ -1,0 +1,99 @@
+name: Publish AUR
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+env:
+  AUR_TERMCANVAS_BIN: ssh://aur@aur.archlinux.org/termcanvas-bin.git
+  AUR_TERMCANVAS: ssh://aur@aur.archlinux.org/termcanvas.git
+
+jobs:
+  aur-publish:
+    runs-on: ubuntu-latest
+    if: ${{ secrets.AUR_SSH_PRIVATE_KEY != '' }}
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          path: repo
+
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.AUR_SSH_PRIVATE_KEY }}" > ~/.ssh/aur
+          chmod 600 ~/.ssh/aur
+          cat >> ~/.ssh/config << 'EOF'
+          Host aur.archlinux.org
+            IdentityFile ~/.ssh/aur
+            StrictHostKeyChecking accept-new
+            User aur
+          EOF
+
+      - name: Compute checksums
+        id: checksums
+        working-directory: repo
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+          APPIMAGE_URL="https://github.com/blueberrycongee/termcanvas/releases/download/v${VERSION}/TermCanvas-${VERSION}.AppImage"
+          APPIMAGE_SHA=$(curl -sL "$APPIMAGE_URL" | sha256sum | cut -d' ' -f1)
+          echo "appimage_sha256=${APPIMAGE_SHA}" >> "$GITHUB_OUTPUT"
+
+          SOURCE_URL="https://github.com/blueberrycongee/termcanvas/archive/v${VERSION}.tar.gz"
+          SOURCE_SHA=$(curl -sL "$SOURCE_URL" | sha256sum | cut -d' ' -f1)
+          echo "source_sha256=${SOURCE_SHA}" >> "$GITHUB_OUTPUT"
+
+      - name: Publish termcanvas-bin
+        working-directory: repo
+        run: |
+          git clone "$AUR_TERMCANVAS_BIN" aur-bin || {
+            echo "First-time setup required for termcanvas-bin."
+            echo "Create the package at https://aur.archlinux.org/packages/termcanvas-bin first, then re-run this workflow."
+            exit 1
+          }
+          VERSION="${{ steps.checksums.outputs.version }}"
+          SHA256="${{ steps.checksums.outputs.appimage_sha256 }}"
+
+          sed -e "s/pkgver=.*/pkgver=${VERSION}/" \
+              -e "s/sha256sums=('SKIP'/sha256sums=('${SHA256}'/" \
+              contrib/arch/bin/PKGBUILD > aur-bin/PKGBUILD
+
+          cd aur-bin
+          # Generate .SRCINFO from the updated PKGBUILD
+          makepkg --printsrcinfo > .SRCINFO
+
+          git config user.name "wisdom"
+          git config user.email "wisboynelson123@gmail.com"
+          git add PKGBUILD .SRCINFO
+          git diff --cached --quiet || git commit -m "Update to v${VERSION}"
+          git push
+
+      - name: Publish termcanvas (source)
+        working-directory: repo
+        run: |
+          git clone "$AUR_TERMCANVAS" aur-src || {
+            echo "First-time setup required for termcanvas."
+            echo "Create the package at https://aur.archlinux.org/packages/termcanvas first, then re-run this workflow."
+            exit 1
+          }
+          VERSION="${{ steps.checksums.outputs.version }}"
+          SHA256="${{ steps.checksums.outputs.source_sha256 }}"
+
+          sed -e "s/pkgver=.*/pkgver=${VERSION}/" \
+              -e "s/sha256sums=('SKIP'/sha256sums=('${SHA256}'/" \
+              contrib/arch/source/PKGBUILD > aur-src/PKGBUILD
+
+          cd aur-src
+          # Generate .SRCINFO from the updated PKGBUILD
+          makepkg --printsrcinfo > .SRCINFO
+
+          git config user.name "wisdom"
+          git config user.email "wisboynelson123@gmail.com"
+          git add PKGBUILD .SRCINFO
+          git diff --cached --quiet || git commit -m "Update to v${VERSION}"
+          git push

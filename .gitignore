@@ -47,9 +47,13 @@ git-harness-snapshot.md
 .local-archive/
 docs/research/harness-articles-2026/
 
+# AUR source package build artifacts
+contrib/arch/source/src/
+contrib/arch/source/v*.tar.gz
+
 # Locally-installed third-party skills (not project-managed). The
 # project's own skill plugin lives at /skills/skills and is exposed
-# under .agents/skills/termcanvas via a tracked symlink, so we ignore
+# under .agents/skills/termcanvas via a managed symlink, so we ignore
 # every other entry under .agents/skills/ instead of the whole tree.
 /.agents/skills/*/
 !/.agents/skills/termcanvas
