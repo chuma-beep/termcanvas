@@ -44,7 +44,6 @@ modules:
       - type: git
         url: https://github.com/blueberrycongee/termcanvas.git
         tag: v0.39.8
-        commit: HEAD
       - type: file
         path: pnpm-lock.yaml
         dest-filename: pnpm-lock.yaml
