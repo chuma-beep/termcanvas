@@ -24,12 +24,12 @@ jobs:
       - uses: shimataro/ssh-key-action@v2
         with:
           key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
-          known_hosts: ${{ secrets.AUR_KNOWN_HOSTS || 'aur.archlinux.org ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEqB5BszmlVxKY/LRKkCqMJMLqg7/3Qtl/0BmO87YFNX' }}
           name: aur
           config: |
             Host aur.archlinux.org
               IdentityFile ~/.ssh/aur
-              StrictHostKeyChecking accept-new
+              StrictHostKeyChecking no
+              UserKnownHostsFile /dev/null
               User aur
 
       - name: Compute checksums
