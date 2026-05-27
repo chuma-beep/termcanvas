@@ -17,10 +17,16 @@ env:
 jobs:
   aur-publish:
     runs-on: ubuntu-latest
-    if: ${{ secrets.AUR_SSH_PRIVATE_KEY != '' }}
 
     steps:
       - uses: actions/checkout@v5
+
+      - name: Validate secrets
+        run: |
+          if [ -z "${{ secrets.AUR_SSH_PRIVATE_KEY }}" ]; then
+            echo "::error::AUR_SSH_PRIVATE_KEY secret is not set. Add it in Settings → Secrets and variables → Actions."
+            exit 1
+          fi
 
       - name: Setup SSH key
         run: |
