@@ -1,8 +1,11 @@
 name: Publish AUR
 
 on:
-  release:
-    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Upstream release version (without v prefix, e.g. 0.39.9)"
+        required: true
 
 permissions:
   contents: read
@@ -18,8 +21,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v5
-        with:
-          path: repo
 
       - name: Setup SSH key
         run: |
@@ -35,9 +36,8 @@ jobs:
 
       - name: Compute checksums
         id: checksums
-        working-directory: repo
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
+          VERSION="${{ github.event.inputs.version }}"
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
 
           APPIMAGE_URL="https://github.com/blueberrycongee/termcanvas/releases/download/v${VERSION}/TermCanvas-${VERSION}.AppImage"
@@ -49,7 +49,6 @@ jobs:
           echo "source_sha256=${SOURCE_SHA}" >> "$GITHUB_OUTPUT"
 
       - name: Publish termcanvas-bin
-        working-directory: repo
         run: |
           git clone "$AUR_TERMCANVAS_BIN" aur-bin || {
             echo "First-time setup required for termcanvas-bin."
@@ -59,14 +58,16 @@ jobs:
           VERSION="${{ steps.checksums.outputs.version }}"
           SHA256="${{ steps.checksums.outputs.appimage_sha256 }}"
 
+          # Update PKGBUILD and .SRCINFO
           sed -e "s/pkgver=.*/pkgver=${VERSION}/" \
               -e "s/sha256sums=('SKIP'/sha256sums=('${SHA256}'/" \
               contrib/arch/bin/PKGBUILD > aur-bin/PKGBUILD
 
-          cd aur-bin
-          # Generate .SRCINFO from the updated PKGBUILD
-          makepkg --printsrcinfo > .SRCINFO
+          sed -e "s/pkgver = .*/pkgver = ${VERSION}/" \
+              -e "0,/sha256sums = SKIP/{s/sha256sums = SKIP/sha256sums = ${SHA256}/}" \
+              contrib/arch/bin/.SRCINFO > aur-bin/.SRCINFO
 
+          cd aur-bin
           git config user.name "wisdom"
           git config user.email "wisboynelson123@gmail.com"
           git add PKGBUILD .SRCINFO
@@ -74,7 +75,6 @@ jobs:
           git push
 
       - name: Publish termcanvas (source)
-        working-directory: repo
         run: |
           git clone "$AUR_TERMCANVAS" aur-src || {
             echo "First-time setup required for termcanvas."
@@ -84,14 +84,16 @@ jobs:
           VERSION="${{ steps.checksums.outputs.version }}"
           SHA256="${{ steps.checksums.outputs.source_sha256 }}"
 
+          # Update PKGBUILD and .SRCINFO
           sed -e "s/pkgver=.*/pkgver=${VERSION}/" \
               -e "s/sha256sums=('SKIP'/sha256sums=('${SHA256}'/" \
               contrib/arch/source/PKGBUILD > aur-src/PKGBUILD
 
-          cd aur-src
-          # Generate .SRCINFO from the updated PKGBUILD
-          makepkg --printsrcinfo > .SRCINFO
+          sed -e "s/pkgver = .*/pkgver = ${VERSION}/" \
+              -e "0,/sha256sums = SKIP/{s/sha256sums = SKIP/sha256sums = ${SHA256}/}" \
+              contrib/arch/source/.SRCINFO > aur-src/.SRCINFO
 
+          cd aur-src
           git config user.name "wisdom"
           git config user.email "wisboynelson123@gmail.com"
           git add PKGBUILD .SRCINFO
